@@ -3,6 +3,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+# Utililty functions for visualization, outputs etc.
+
+
 # %% Plot pipeline outputs.
 def plot_images(images, labels = None):
     N = len(images)

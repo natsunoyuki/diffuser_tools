@@ -2,6 +2,9 @@ import diffusers
 import torch
 
 
+# Utility functions for image to image pipeline.
+
+
 # %% Load (image to image) diffuser pipeline.
 def load_img2img_pipeline(
     model_dir,

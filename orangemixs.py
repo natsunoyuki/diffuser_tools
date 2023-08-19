@@ -1,9 +1,12 @@
 import os
 import shutil
-
 import huggingface_hub
 
 
+# Functions for downloading orange mix model files from HuggingFace.
+
+
+# %% Download orange mix files from HuggingFace.
 def get_orangemixs_files(repo_id = "WarriorMama777/OrangeMixs",
                          model_name = "AbyssOrangeMix2",
                          model_dir = None,
