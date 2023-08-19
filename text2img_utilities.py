@@ -1,3 +1,6 @@
+import time
+import sys
+
 import torch
 import transformers
 import diffusers
@@ -116,6 +119,7 @@ def run_pipe(pipe,
              seed = 0,
              n_images = 1,
              device_name = None,
+             verbose = False,
     ):
     """
     Arguments
@@ -160,7 +164,10 @@ def run_pipe(pipe,
     if prompt is None and prompt_embeddings is None:
         return images
     
-    for seed in seeds:
+    initial_time = time.time()
+    for count, seed in enumerate(seeds):
+        start_time = time.time()
+
         if prompt is not None:
             new_img = pipe(
                 prompt = prompt,
@@ -185,5 +192,18 @@ def run_pipe(pipe,
             ).images
 
         images = images + new_img
+
+        end_time = time.time()
+        te = end_time - start_time
+        if verbose is True:
+            sys.stdout.write(
+                "{} / {} iterations. {:.2f}s.\n".format(count+1, len(seeds), te)
+            );
+
+        final_time = time.time()
+        if verbose is True:
+            sys.stdout.write(
+                "{} iterations @ {:.2f}s.\n".format(len(seeds), final_time - initial_time)
+            );
 
     return images
