@@ -200,10 +200,10 @@ def run_pipe(pipe,
                 "{} / {} iterations. {:.2f}s.\n".format(count+1, len(seeds), te)
             );
 
-        final_time = time.time()
-        if verbose is True:
-            sys.stdout.write(
-                "{} iterations @ {:.2f}s.\n".format(len(seeds), final_time - initial_time)
-            );
+    final_time = time.time()
+    if verbose is True:
+        sys.stdout.write(
+            "{} iterations @ {:.2f}s.\n".format(len(seeds), final_time - initial_time)
+        );
 
     return images
