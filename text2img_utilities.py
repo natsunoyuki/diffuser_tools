@@ -36,7 +36,7 @@ def load_pipeline(
         clip_dir: str or None.
             Path to the CLIP text encoder model directory.
             If None model_dir will be used.
-        safety_checker: None or SafetyChecker.
+        safety_checker: None.
             Turn off safety checker with None.
         device_name: torch.device
             Device name to run the model on. Run on GPUs!
