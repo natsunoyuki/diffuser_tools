@@ -14,6 +14,10 @@ def get_prompt_embeddings(
     split_character = ",",
     device = torch.device("cpu")
 ):
+    """
+    Prompt embeddings to overcome CLIP 77 token limit.
+    https://github.com/huggingface/diffusers/issues/2136
+    """
     max_length = pipe.tokenizer.model_max_length
     # Simple method of checking if the prompt is longer than the negative
     # prompt - split the input strings using `split_character`.

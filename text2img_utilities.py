@@ -12,7 +12,7 @@ def load_pipeline(
     scheduler = None,
     clip_skip = 1,
     clip_dir = None,
-    safety_checker = False,
+    safety_checker = None,
     device_name = torch.device("cpu"),
     torch_dtype = torch.float32,
     ):
@@ -33,8 +33,8 @@ def load_pipeline(
         clip_dir: str or None.
             Path to the CLIP text encoder model directory.
             If None model_dir will be used.
-        safety_checker: bool
-            Turn on/off model safety checker.
+        safety_checker: None or SafetyChecker.
+            Turn off safety checker with None.
         device_name: torch.device
             Device name to run the model on. Run on GPUs!
         torch_dtype: torch.float32 or torch.float16
@@ -115,7 +115,7 @@ def run_pipe(pipe,
              scale = 7.0,
              seed = 0,
              n_images = 1,
-             device_name = torch.device("cpu"),
+             device_name = None,
     ):
     """
     Arguments
@@ -126,10 +126,10 @@ def run_pipe(pipe,
         negative_prompt: str or None
             Negative prompt used to guide the denoising process.
             Used to restrict the possibilities of the output image.
-        prompt_embedding:
-
-        negative_prompt_embedding:
-
+        prompt_embedding: Tensor
+            Prompt embeddings in lieu of prompts.
+        negative_prompt_embedding: Tensor
+            Negative prompt embeddings in lieu of negative prompts.
         steps: int
             Number of denoising iterations.
         width, height: int
@@ -141,13 +141,16 @@ def run_pipe(pipe,
             Random seed used to initialize the noisy image.
         n_images: int
             How many images to produce.
+            If n_images > 1, seed will be iteratively increased to
+            generate the new images.
         device_name: torch.device
             Device name to run the model on. Run on GPUs!
     Returns
         image_list: list
             List of output images.
     """
-    pipe = pipe.to(device_name)
+    if device_name is not None:
+        pipe = pipe.to(device_name)
 
     # Multiple seeds.
     seeds = [i for i in range(seed, seed + n_images, 1)]
