@@ -1,3 +1,2 @@
-# Diffuser Tools and Utilities
-
-Tools and utilities to make using `diffusers` a less painful experience.
+# Diffuser Tools 
+This is a set of Python codes containing tools for generating images using stable diffusion models using the `diffusers` package.
