@@ -26,14 +26,17 @@ from diffuser_tools.utilities import plot_images, save_images
 # prompt_utilities contains functions for creating prompt embeddings.
 from diffuser_tools.prompt_utilities import get_prompt_embeddings
 
-# text2img_utilities contain functions for creating and running stable diffusion pipelines.
+# text2img_utilities contain functions for creating and running 
+# stable diffusion pipelines.
 from diffuser_tools.text2img_utilities import load_pipeline, run_pipe
 
 
 # Create stable diffusion text to image pipeline.
 # Also, specify the last layer of the clip text encoder to use.
-# clip_skip = 1 will use the full clip text encoder model (following standard conventions).
-# clip_skip = 2 will use features from the second last layer(again following standard conventions).
+# clip_skip = 1 will use the full clip text encoder model
+# (following standard conventions).
+# clip_skip = 2 will use features from the second last layer
+# (again following standard conventions).
 pipe = load_pipeline(
     model_path,
     scheduler = "EADS",
@@ -57,7 +60,8 @@ prompt_embeds, negative_prompt_embeds = get_prompt_embeddings(
     device = torch.device("cuda"),
 )
 
-# Run stable diffusion pipeline to get images using clip_skip and prompt embeddings.
+# Run stable diffusion pipeline to get images using clip_skip 
+# and prompt embeddings.
 images = run_pipe(
     pipe = pipe,
     prompt_embeddings = prompt_embeds,
