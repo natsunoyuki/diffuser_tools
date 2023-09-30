@@ -1,9 +1,21 @@
 # Diffuser Tools 
-This is a set of Python codes containing tools for generating images using stable diffusion models using the `diffusers` package.
+`diffuser_tools` a set of Python codes containing tools to make generating images using the <a href = "https://github.com/huggingface/diffusers">`diffusers`</a> package an easier task.
+
+`diffuser_tools` contains functions to load and run `diffusers` `text2img` pipelines with prompt embeddings and clip-skipping, and visualize or save the generated images to disk. 
 
 ## Installation
 ```
 pip install git+https://github.com/natsunoyuki/diffuser_tools
+```
+
+### Versions of Dependencies
+This set of Python codes has been tested with the following versions of the dependencies listed in `pyproject.toml`.
+```
+transformers==4.31.0
+accelerate==0.21.0
+diffusers==0.20.0
+huggingface_hub==0.16.4
+omegaconf==2.3.0
 ```
 
 ## Usage
@@ -18,7 +30,10 @@ from diffuser_tools.prompt_utilities import get_prompt_embeddings
 from diffuser_tools.text2img_utilities import load_pipeline, run_pipe
 
 
-# Create stable diffusion pipeline.
+# Create stable diffusion text to image pipeline.
+# Also, specify the last layer of the clip text encoder to use.
+# clip_skip = 1 will use the full clip text encoder model (following standard conventions).
+# clip_skip = 2 will use features from the second last layer(again following standard conventions).
 pipe = load_pipeline(
     model_path,
     scheduler = "EADS",
@@ -42,7 +57,7 @@ prompt_embeds, negative_prompt_embeds = get_prompt_embeddings(
     device = torch.device("cuda"),
 )
 
-# Run stable diffusion pipeline to get images.
+# Run stable diffusion pipeline to get images using clip_skip and prompt embeddings.
 images = run_pipe(
     pipe = pipe,
     prompt_embeddings = prompt_embeds,
@@ -58,4 +73,18 @@ images = run_pipe(
 
 # Visualize images.
 plot_images(images)
+```
+
+### Using CivitAI Models
+Many models released on <a href = "https://civitai.com">CivitAI</a> are published as safetensors. These safetensors must be converted to a format which the `diffusers` library can use. To do so, use a script provided on the `diffusers` official GitHub repository:
+```
+wget https://raw.githubusercontent.com/huggingface/diffusers/main/scripts/convert_original_stable_diffusion_to_diffusers.py
+```
+where `main` should follow the version of `diffusers` used. Therefore if `diffusers==0.20.0` then the following version should be used instead:
+```
+wget https://raw.githubusercontent.com/huggingface/diffusers/v0.20.0/scripts/convert_original_stable_diffusion_to_diffusers.py
+```
+The safetensor files downloaded from <a href = "https://civitai.com">CivitAI</a> can then be converted using the command line:
+```
+python convert_original_stable_diffusion_to_diffusers.py --checkpoint_path kMain_kMain21.safetensors --dump_path kMain/ --from_safetensors
 ```
