@@ -4,6 +4,7 @@ import huggingface_hub
 
 
 # Functions for downloading orange mix model files from HuggingFace.
+# https://huggingface.co/WarriorMama777/OrangeMixs/tree/main/Models/AbyssOrangeMix2/Diffusers
 
 
 # %% Download orange mix files from HuggingFace.
@@ -16,6 +17,19 @@ def get_orangemixs_files(repo_id = "WarriorMama777/OrangeMixs",
     for the diffusers library to use.
 
     There must be a simpler way to do this!
+
+    Arguments:
+        repo_id: str 
+            Path to the HuggingFace model repository.
+        model_name: str
+            Model name on the HuggingFace model repository.
+        model_dir: None or str
+            Local directory name where the model files will be downloaded to.
+        revision: str
+            HuggingFace model repository version. Defaults to "main".
+    Returns:
+        model_dir: None or str
+            Local directory name where the model files will be downloaded to.
     """
     if model_dir is None:
         model_dir = model_name

@@ -4,6 +4,9 @@ import torch
 
 # Utility functions for image to image pipeline.
 
+# TODO img2img_utilities.py is outdated. Update this to make it 
+# concurrent with test2img_utilities.py.
+
 
 # %% Load (image to image) diffuser pipeline.
 def load_img2img_pipeline(
@@ -16,6 +19,7 @@ def load_img2img_pipeline(
         model_dir, torch_dtype = torch_dtype
     )
 
+    # TODO: add support for other schedulers.
     if scheduler in ["EulerAncestralDiscreteScheduler", "EADS"]:
         pipe.scheduler = diffusers.EulerAncestralDiscreteScheduler.from_config(
             pipe.scheduler.config
@@ -35,7 +39,7 @@ def load_img2img_pipeline(
     return pipe
 
 
-# %% Run diffuser pipeline.
+# %% Run image to image diffuser pipeline.
 def run_pipe(pipe,
              prompt,
              image,

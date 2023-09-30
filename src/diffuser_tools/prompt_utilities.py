@@ -2,11 +2,8 @@ import torch
 
 
 # Utility functions for prompts and negative prompts.
-
-
 # %% Prompt embeddings to overcome CLIP 77 token limit.
 # https://github.com/huggingface/diffusers/issues/2136
-
 def get_prompt_embeddings(
     pipe,
     prompt,
@@ -14,8 +11,7 @@ def get_prompt_embeddings(
     split_character = ",",
     device = torch.device("cpu")
 ):
-    """
-    Prompt embeddings to overcome CLIP 77 token limit.
+    """Prompt embeddings to overcome CLIP 77 token limit.
     https://github.com/huggingface/diffusers/issues/2136
     """
     max_length = pipe.tokenizer.model_max_length
