@@ -6,7 +6,9 @@ import torch
 import transformers
 
 
-class Text2Img(object):
+# TODO
+
+class Text2ImagePipe(object):
     def __init__(
         self, 
         model_dir, 
