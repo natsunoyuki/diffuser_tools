@@ -21,6 +21,11 @@ class Text2Img(object):
         torch_dtype = torch.float32,
         device = torch.device("cpu"),
     ):
+        # Hardware related parameters.
+        # These will be used directly internally.
+        self.torch_dtype = torch_dtype
+        self.device = device
+
         # Diffusers pipeline.
         self.pipe = None
         self.load_pipeline(
@@ -42,11 +47,6 @@ class Text2Img(object):
             use_prompt_embeddings, 
             split_character
         )
-
-        # Hardware related parameters.
-        self.torch_dtype = torch_dtype
-        self.device = device
-
 
     def set_prompts(
         self, 
@@ -130,7 +130,7 @@ class Text2Img(object):
         #    ]
 
         # Load the pipeline to the GPU if available.
-        self.pipe = pipe.to(self.device_name)
+        self.pipe = pipe.to(self.device)
 
         if return_pipe is True:
             return pipe
