@@ -85,6 +85,9 @@ class Text2ImagePipe(object):
         use_prompt_embeddings = True,
         split_character = ",",
     ):
+        """Set prompt and negative prompts.
+        Optionally calculates the prompt embeddings.
+        """
         if prompt is not None:
             self.prompt = prompt
         if negative_prompt is not None:
@@ -168,6 +171,8 @@ class Text2ImagePipe(object):
         use_prompt_embeddings = False,
         verbose = False,
     ):
+        """Runs the loaded model.
+        """
         if self.prompt is None and self.prompt_embeddings is None:
             return 
         
