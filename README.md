@@ -8,17 +8,78 @@
 pip install git+https://github.com/natsunoyuki/diffuser_tools
 ```
 
-### Versions of Dependencies
+### Dependencies Versions
 This set of Python codes has been tested with the following versions of the dependencies listed in `pyproject.toml`.
 ```
-transformers==4.31.0
-accelerate==0.21.0
-diffusers==0.20.0
-huggingface_hub==0.16.4
+transformers==4.35.2
+accelerate==0.25.0
+diffusers==0.24.0
+huggingface_hub==0.19.4
 omegaconf==2.3.0
 ```
 
-## Usage
+## Using `diffuser_tools` `Text2ImagePipe` Class
+```
+# text2img contains a class for the entire text to image pipeline.
+# This class is able to handle clip skips, LoRAs and schedulers.
+from diffuser_tools.text2img import Text2ImagePipe
+
+# utilities contains functions for visualization and outupts.
+from diffuser_tools.utilities import plot_images, save_images
+
+
+# kMain safetensors from civitai.
+model_dir = "kMain_kMain21.safetensors"
+
+# LoRA safetensors from civitai.
+lora_path = "edgWar40KAdeptaSororitas.safetensors"
+
+# Clip skip.
+clip_skip = 0
+
+# Scheduler. 
+scheduler = "EADS"
+
+# Create prompt and negative prompts.
+prompt = """..."""
+negative_prompt = """..."""
+
+
+# Initialize the text to image pipe class.
+text_2_img = Text2ImagePipe(
+    model_dir,
+    prompt,
+    negative_prompt,
+    lora_path,
+    scheduler,
+    clip_skip = clip_skip,
+    safety_checker = None,
+    use_prompt_embeddings = True,
+    split_character = ",",
+    torch_dtype = torch_dtype,
+    device = torch.device("cuda"),
+)
+
+
+# Run the text to image pipeline for several seed values.
+seeds = [i for i in range(0, 5)]
+images = []
+for seed in seeds:
+    image = text_2_img.run_pipe(
+        steps = 50,
+        width = 512,
+        height = 832,
+        scale = 12.0,
+        seed = seed,
+        use_prompt_embeddings = True,
+        verbose = False,
+    )
+    images.append(image)
+
+plot_images(images)
+```
+
+## Using `diffuser_tools` Functions
 ```
 # utilities contains functions for visualization and outupts.
 from diffuser_tools.utilities import plot_images, save_images
@@ -79,16 +140,16 @@ images = run_pipe(
 plot_images(images)
 ```
 
-### Using CivitAI Models
+### Regarding CivitAI Models
 Many models released on <a href = "https://civitai.com">CivitAI</a> are published as safetensors. These safetensors must be converted to a format which the `diffusers` library can use. To do so, use a script provided on the `diffusers` official GitHub repository:
 ```
 wget https://raw.githubusercontent.com/huggingface/diffusers/main/scripts/convert_original_stable_diffusion_to_diffusers.py
 ```
-where `main` should follow the version of `diffusers` used. Therefore if `diffusers==0.20.0` then the following version should be used instead:
+where `main` should follow the version of `diffusers` used. Therefore if `diffusers==0.24.0` then the following version should be used instead:
 ```
-wget https://raw.githubusercontent.com/huggingface/diffusers/v0.20.0/scripts/convert_original_stable_diffusion_to_diffusers.py
+wget https://raw.githubusercontent.com/huggingface/diffusers/v0.24.0/scripts/convert_original_stable_diffusion_to_diffusers.py
 ```
 The safetensor files downloaded from <a href = "https://civitai.com">CivitAI</a> can then be converted using the command line:
 ```
-python convert_original_stable_diffusion_to_diffusers.py --checkpoint_path kMain_kMain21.safetensors --dump_path kMain/ --from_safetensors
+python convert_original_stable_diffusion_to_diffusers.py --checkpoint_path <model_name>.safetensors --dump_path <output_path>/ --from_safetensors
 ```
