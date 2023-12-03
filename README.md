@@ -18,7 +18,14 @@ huggingface_hub==0.19.4
 omegaconf==2.3.0
 ```
 
-## Using `diffuser_tools` `Text2ImagePipe` Class
+## Usage 
+There are two main ways to use the `diffuser_tools` package.
+1. Using the `Text2ImagePipe` class.
+2. Using `diffuser_tools` functions.
+
+The `Text2ImagePipe` class is the more recent method of using `diffuser_tools`, while the `diffuser_tools` functions are less recent and are kept for legacy purposese.
+
+### ① Using the `Text2ImagePipe` Class
 ```
 # text2img contains a class for the entire text to image pipeline.
 # This class is able to handle clip skips, LoRAs and schedulers.
@@ -79,7 +86,7 @@ for seed in seeds:
 plot_images(images)
 ```
 
-## Using `diffuser_tools` Functions
+### ② Using `diffuser_tools` Functions
 ```
 # utilities contains functions for visualization and outupts.
 from diffuser_tools.utilities import plot_images, save_images
