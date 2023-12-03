@@ -3,20 +3,19 @@ import time
 
 import diffusers
 import torch
-import transformers
-
 
 # TODO
 
 class Text2ImagePipe(object):
+    # %%
     def __init__(
         self, 
         model_dir, 
         prompt = None, 
         negative_prompt= None,
+        lora_dir = None,
         scheduler = None,
         clip_skip = 1,
-        clip_dir = None,
         safety_checker = None,
         use_prompt_embeddings = True,
         split_character = ",",
@@ -30,13 +29,41 @@ class Text2ImagePipe(object):
 
         # Diffusers pipeline.
         self.pipe = None
-        self.load_pipeline(
+        
+        # Load model weights.
+        self.pipe = diffusers.StableDiffusionPipeline.from_single_file(
             model_dir,
-            scheduler,
-            clip_skip,
-            clip_dir,
-            safety_checker
+            torch_dtype = torch_dtype,
         )
+
+        # Safety checker.
+        self.pipe.safety_checker = safety_checker
+
+        # Load LoRA weights.
+        if lora_dir is not None:
+            self.pipe.load_lora_weights(lora_dir)
+
+        # CLIP skip.
+        clip_layers = self.pipe.text_encoder.text_model.encoder.layers
+        if clip_skip > 0:
+            self.pipe.text_encoder.text_model.encoder.layers = clip_layers[:-clip_skip]
+
+        # Scheduler.
+        if scheduler in ["EulerAncestralDiscreteScheduler", "EADS"]:
+            self.pipe.scheduler = diffusers.EulerAncestralDiscreteScheduler.from_config(
+                self.pipe.scheduler.config
+            )
+        elif scheduler in ["EulerDiscreteScheduler", "EDS"]:
+            self.pipe.scheduler = diffusers.EulerDiscreteScheduler.from_config(
+                self.pipe.scheduler.config
+            )
+        elif scheduler in ["DPMSolverMultistepScheduler", "DPMSMS"]:
+            self.pipe.scheduler = diffusers.DPMSolverMultistepScheduler.from_config(
+                self.pipe.scheduler.config
+            )
+
+        # Device.
+        self.pipe = self.pipe.to(self.device)
 
         # Prompt and negative prompts.
         self.prompt = None
@@ -50,6 +77,7 @@ class Text2ImagePipe(object):
             split_character
         )
 
+    # %%
     def set_prompts(
         self, 
         prompt = None, 
@@ -67,77 +95,8 @@ class Text2ImagePipe(object):
         if type(self.prompt) == str and type(self.negative_prompt) == str:
             if use_prompt_embeddings is True:
                 self.get_prompt_embeddings(split_character = split_character)
-            
 
-    def load_pipeline(
-        self,
-        model_dir,
-        scheduler = None,
-        clip_skip = 1,
-        clip_dir = None,
-        safety_checker = None,
-        return_pipe = False,
-    ):
-        # Load the pre-trained diffusion pipeline.
-        # Account for clip skipping by specifying a text encoder. 
-        # TODO clean this up.
-        if clip_skip > 1:
-            if clip_dir is None:
-                clip_dir = model_dir
-
-            text_encoder = transformers.CLIPTextModel.from_pretrained(
-                clip_dir,
-                subfolder = "text_encoder",
-                num_hidden_layers = 12 - (clip_skip - 1),
-                torch_dtype = self.torch_dtype
-            )
-
-            pipe = diffusers.StableDiffusionPipeline.from_pretrained(
-                model_dir,
-                torch_dtype = self.torch_dtype,
-                safety_checker = safety_checker,
-                text_encoder = text_encoder,
-            )
-        # No clip skipping.
-        else:
-            pipe = diffusers.StableDiffusionPipeline.from_pretrained(
-                model_dir,
-                torch_dtype = self.torch_dtype,
-                safety_checker = safety_checker,
-            )
-
-        # TODO add more schedulers.
-        # Change the scheduler.
-        if scheduler in [
-            "EulerAncestralDiscreteScheduler",
-            "EADS"
-        ]:
-            pipe.scheduler = diffusers.EulerAncestralDiscreteScheduler.from_config(
-                pipe.scheduler.config
-            )
-        elif scheduler in ["EulerDiscreteScheduler", "EDS"]:
-            pipe.scheduler = diffusers.EulerDiscreteScheduler.from_config(
-                pipe.scheduler.config
-            )
-        elif scheduler in ["DPMSolverMultistepScheduler", "DPMSMS"]:
-            pipe.scheduler = diffusers.DPMSolverMultistepScheduler.from_config(
-                pipe.scheduler.config
-            )
-        # Else the default scheduler is used.
-
-        # Change the safety checker.
-        #if safety_checker is False:
-        #    pipe.safety_checker = lambda images, **kwargs: [
-        #        images, [False] * len(images)
-        #    ]
-
-        # Load the pipeline to the GPU if available.
-        self.pipe = pipe.to(self.device)
-
-        if return_pipe is True:
-            return pipe
-
-
+    # %%
     def get_prompt_embeddings(
         self, 
         split_character = ",", 
@@ -198,7 +157,7 @@ class Text2ImagePipe(object):
         if return_embeddings is True:
             return torch.cat(concat_embeds, dim = 1), torch.cat(neg_embeds, dim = 1)
 
-
+    # %%
     def run_pipe(
         self,
         steps = 50,
@@ -247,4 +206,3 @@ class Text2ImagePipe(object):
             sys.stdout.write("{:.2f}s.\n".format(time_elapsed));
 
         return imgs[0]
-    
