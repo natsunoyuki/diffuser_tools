@@ -26,6 +26,8 @@ There are two main ways to use the `diffuser_tools` package.
 The `Text2ImagePipe` class is the more recent method of using `diffuser_tools`, while the `diffuser_tools` functions are less recent and are kept for legacy purposese.
 
 ### ① Using the `Text2ImagePipe` Class
+The `Text2ImagePipe` class contains the functionalities required to load pre-trained stable diffusion model safetensors, LoRA weight safetensors, use CLIP skip, and calculate prompt/negative prompt embeddings.
+
 ```
 # text2img contains a class for the entire text to image pipeline.
 # This class is able to handle clip skips, LoRAs and schedulers.
@@ -35,10 +37,10 @@ from diffuser_tools.text2img import Text2ImagePipe
 from diffuser_tools.utilities import plot_images, save_images
 
 
-# kMain safetensors from civitai.
+# kMain safetensors directly from civitai.
 model_dir = "kMain_kMain21.safetensors"
 
-# LoRA safetensors from civitai.
+# LoRA safetensors directly from civitai.
 lora_path = "edgWar40KAdeptaSororitas.safetensors"
 
 # Clip skip.
@@ -87,6 +89,10 @@ plot_images(images)
 ```
 
 ### ② Using `diffuser_tools` Functions
+The various `diffuser_tools` functions outlined below were created using older versions of diffusers which did not have many modern capabilities such as loading safetensors directly or loading LoRA weights.
+
+Before CivitAI models can be used with the `diffuser_tools` functions outlined below, they need to be converted from safetensors to a format which older versions of the `diffusers` package can load. See the section <b>Converting CivitAI Safetensors for Diffusers</b> for more information on CivitAI safetensors conversion.
+
 ```
 # utilities contains functions for visualization and outupts.
 from diffuser_tools.utilities import plot_images, save_images
@@ -147,7 +153,7 @@ images = run_pipe(
 plot_images(images)
 ```
 
-### Regarding CivitAI Models
+## Converting CivitAI Safetensors for Diffusers
 Many models released on <a href = "https://civitai.com">CivitAI</a> are published as safetensors. These safetensors must be converted to a format which the `diffusers` library can use. To do so, use a script provided on the `diffusers` official GitHub repository:
 ```
 wget https://raw.githubusercontent.com/huggingface/diffusers/main/scripts/convert_original_stable_diffusion_to_diffusers.py
