@@ -40,6 +40,8 @@ class Text2ImagePipe(object):
         self.pipe.safety_checker = safety_checker
 
         # Load LoRA weights.
+        # TODO add lora fusing.
+        # https://huggingface.co/docs/diffusers/using-diffusers/loading_adapters#lora
         if lora_dir is not None:
             self.pipe.load_lora_weights(lora_dir)
 
