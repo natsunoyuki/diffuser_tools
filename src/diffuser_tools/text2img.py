@@ -4,17 +4,19 @@ import time
 import diffusers
 import torch
 
-# TODO
 
+# %%
 class Text2ImagePipe(object):
     # %%
     def __init__(
-        self, 
-        model_dir, 
-        prompt = None, 
+        self,
+        model_dir,
+        prompt = None,
         negative_prompt= None,
-        lora_dir = None,
         scheduler = None,
+        lora_dir = None,
+        lora_dirs = [],
+        lora_scales = [],
         clip_skip = 1,
         safety_checker = None,
         use_prompt_embeddings = True,
@@ -22,6 +24,45 @@ class Text2ImagePipe(object):
         torch_dtype = torch.float32,
         device = torch.device("cpu"),
     ):
+        """
+        Text2Image stable diffusion pipeline capable of handling:
+        1. Prompt and negative prompt embeddings.
+        2. Loading LoRAs.
+        3. CLIP skips.
+        4. Safety checker.
+
+        Inputs:
+            model_dir: str
+                Path to the model checkpoint safetensors file.
+            prompt: str
+                Prompt.
+            negative_prompt: str
+                Negative prompt.
+            scheduler: str
+                Scheduler to use. Choose from: EADS, EDS or DPMSMS.
+            lora_dir: str
+                Path to a single LoRA safetensors file.
+            lora_dirs: list of str
+                Paths to multiple LoRA safetensors files.
+            lora_scales: list of floats
+                Corresponding scaling factors for the LoRAs in lora_dirs.
+            clip_skip: int
+                Number of CLIP layers to skip. 0 means no CLIP skipping.
+            safety_checker: None
+                Set to None to remove turn safety checker off.
+                Can also use customized safety checkers.
+            use_prompt_embeddings: bool
+                If True, prompt embeddings and negative prompt embeddings will be 
+                used instead. Overcomes CLIP's 77 token limit.
+            split_character: str
+                Character used to split the prompt and negative prompt into tokens. 
+                "," by default.
+            torch_dtype: torch.float32 or torch.float16.
+                Use torch.float32 if using torch.device("cpu"), and
+                use torch.float16 if using torch.device("cuda").
+            device: torch.device("cpu") or torch.device("cuda")
+                Use CUDA if you have access to a GPU! Makes life easier.
+        """
         # Hardware related parameters.
         # These will be used directly internally.
         self.torch_dtype = torch_dtype
@@ -29,8 +70,9 @@ class Text2ImagePipe(object):
 
         # Diffusers pipeline.
         self.pipe = None
-        
-        # Load model weights.
+
+        # Load CivitAI model weights in the form of safetensors.
+        # TODO add support for other file types or for downloading models from HuggingFace.
         self.pipe = diffusers.StableDiffusionPipeline.from_single_file(
             model_dir,
             torch_dtype = torch_dtype,
@@ -40,10 +82,14 @@ class Text2ImagePipe(object):
         self.pipe.safety_checker = safety_checker
 
         # Load LoRA weights.
-        # TODO add lora fusing.
-        # https://huggingface.co/docs/diffusers/using-diffusers/loading_adapters#lora
-        if lora_dir is not None:
-            self.pipe.load_lora_weights(lora_dir)
+        # TODO clean this up!
+        if len(lora_dirs) == 0:
+            if lora_dir is not None:
+                self.pipe.load_lora_weights(lora_dir)
+        else:
+            for ldir, lsc in zip(lora_dirs, lora_scales):
+                self.pipe.load_lora_weights(ldir)
+                self.pipe.fuse_lora(lora_scale = lsc)
 
         # CLIP skip.
         clip_layers = self.pipe.text_encoder.text_model.encoder.layers
@@ -73,16 +119,16 @@ class Text2ImagePipe(object):
         self.prompt_embeddings = None
         self.negative_prompt_embeddings = None
         self.set_prompts(
-            prompt, 
-            negative_prompt, 
-            use_prompt_embeddings, 
+            prompt,
+            negative_prompt,
+            use_prompt_embeddings,
             split_character
         )
 
     # %%
     def set_prompts(
-        self, 
-        prompt = None, 
+        self,
+        prompt = None,
         negative_prompt = None,
         use_prompt_embeddings = True,
         split_character = ",",
@@ -103,8 +149,8 @@ class Text2ImagePipe(object):
 
     # %%
     def get_prompt_embeddings(
-        self, 
-        split_character = ",", 
+        self,
+        split_character = ",",
         return_embeddings = False,
     ):
         """Prompt embeddings to overcome CLIP 77 token limit.
@@ -112,7 +158,7 @@ class Text2ImagePipe(object):
         """
 
         max_length = self.pipe.tokenizer.model_max_length
-  
+
         # Simple method of checking if the prompt is longer than the negative
         # prompt - split the input strings using `split_character`.
         count_prompt = len(self.prompt.split(split_character))
@@ -125,9 +171,9 @@ class Text2ImagePipe(object):
             ).input_ids.to(self.device)
             shape_max_length = input_ids.shape[-1]
             negative_ids = self.pipe.tokenizer(
-                self.negative_prompt, 
-                truncation = False, 
-                padding = "max_length", 
+                self.negative_prompt,
+                truncation = False,
+                padding = "max_length",
                 max_length = shape_max_length,
                 return_tensors = "pt",
             ).input_ids.to(self.device)
@@ -155,7 +201,7 @@ class Text2ImagePipe(object):
             neg_embeds.append(
                 self.pipe.text_encoder(negative_ids[:, i: i + max_length])[0]
             )
-        
+
         self.prompt_embeddings = torch.cat(concat_embeds, dim = 1)
         self.negative_prompt_embeddings = torch.cat(neg_embeds, dim = 1)
 
@@ -166,8 +212,8 @@ class Text2ImagePipe(object):
     def run_pipe(
         self,
         steps = 50,
-        width = 512,  
-        height = 768, 
+        width = 512,
+        height = 768,
         scale = 7.0,
         seed = 0,
         use_prompt_embeddings = False,
@@ -176,11 +222,11 @@ class Text2ImagePipe(object):
         """Runs the loaded model.
         """
         if self.prompt is None and self.prompt_embeddings is None:
-            return 
-        
+            return
+
         if self.pipe is None:
             return
-        
+
         start_time = time.time()
 
         if use_prompt_embeddings is True:
