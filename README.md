@@ -56,11 +56,11 @@ negative_prompt = """..."""
 
 # Initialize the text to image pipe class.
 text_2_img = Text2ImagePipe(
-    model_dir,
-    prompt,
-    negative_prompt,
-    lora_path,
-    scheduler,
+    model_dir = model_dir,
+    prompt = prompt,
+    negative_prompt = negative_prompt,
+    lora_path = lora_path,
+    scheduler = scheduler,
     clip_skip = clip_skip,
     safety_checker = None,
     use_prompt_embeddings = True,
