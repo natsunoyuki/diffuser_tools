@@ -14,6 +14,7 @@ class Text2ImagePipe(object):
         prompt = None,
         negative_prompt= None,
         scheduler = None,
+        scheduler_configs = None,
         lora_dir = None,
         lora_dirs = [],
         lora_scales = [],
@@ -22,7 +23,7 @@ class Text2ImagePipe(object):
         use_prompt_embeddings = True,
         split_character = ",",
         torch_dtype = torch.float32,
-        device = torch.device("cpu"),
+        device = torch.device("cpu")
     ):
         """
         Text2Image stable diffusion pipeline capable of handling:
@@ -40,6 +41,8 @@ class Text2ImagePipe(object):
                 Negative prompt.
             scheduler: str
                 Scheduler to use. Choose from: EADS, EDS or DPMSMS.
+            scheduler_configs: dict
+                Scheduler configurations in the form of a dict.
             lora_dir: str
                 Path to a single LoRA safetensors file.
             lora_dirs: list of str
@@ -97,18 +100,18 @@ class Text2ImagePipe(object):
             self.pipe.text_encoder.text_model.encoder.layers = clip_layers[:-clip_skip]
 
         # Scheduler.
+        if scheduler_configs is None or len(scheduler_configs) == 0:
+            scheduler_configs = self.pipe.scheduler.config
+        else:
+            for k in self.pipe.scheduler.config.keys():
+                scheduler_configs[k] = self.pipe.scheduler.config.get(k)
+        
         if scheduler in ["EulerAncestralDiscreteScheduler", "EADS"]:
-            self.pipe.scheduler = diffusers.EulerAncestralDiscreteScheduler.from_config(
-                self.pipe.scheduler.config
-            )
+            self.pipe.scheduler = diffusers.EulerAncestralDiscreteScheduler.from_config(scheduler_configs)
         elif scheduler in ["EulerDiscreteScheduler", "EDS"]:
-            self.pipe.scheduler = diffusers.EulerDiscreteScheduler.from_config(
-                self.pipe.scheduler.config
-            )
+            self.pipe.scheduler = diffusers.EulerDiscreteScheduler.from_config(scheduler_configs)
         elif scheduler in ["DPMSolverMultistepScheduler", "DPMSMS"]:
-            self.pipe.scheduler = diffusers.DPMSolverMultistepScheduler.from_config(
-                self.pipe.scheduler.config
-            )
+            self.pipe.scheduler = diffusers.DPMSolverMultistepScheduler.from_config(scheduler_configs)
 
         # Device.
         self.pipe = self.pipe.to(self.device)
@@ -131,7 +134,7 @@ class Text2ImagePipe(object):
         prompt = None,
         negative_prompt = None,
         use_prompt_embeddings = True,
-        split_character = ",",
+        split_character = ","
     ):
         """Set prompt and negative prompts.
         Optionally calculates the prompt embeddings.
@@ -151,7 +154,7 @@ class Text2ImagePipe(object):
     def get_prompt_embeddings(
         self,
         split_character = ",",
-        return_embeddings = False,
+        return_embeddings = False
     ):
         """Prompt embeddings to overcome CLIP 77 token limit.
         https://github.com/huggingface/diffusers/issues/2136
@@ -203,7 +206,7 @@ class Text2ImagePipe(object):
         scale = 7.0,
         seed = 0,
         use_prompt_embeddings = False,
-        verbose = False,
+        verbose = False
     ):
         """Runs the loaded model.
         """
