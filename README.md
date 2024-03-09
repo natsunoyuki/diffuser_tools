@@ -25,8 +25,6 @@ There are two main ways to use the `diffuser_tools` package.
 
 The `Text2ImagePipe` class is the more recent method of using `diffuser_tools`, while the `diffuser_tools` functions are less recent and are kept for legacy purposese.
 
----
-
 ## ① Using the `Text2ImagePipe` Class
 The `Text2ImagePipe` class contains the functionalities required to load pre-trained stable diffusion model safetensors, LoRA weight safetensors, use CLIP skip, and calculate prompt/negative prompt embeddings.
 
@@ -61,7 +59,7 @@ text_2_img = Text2ImagePipe(
     model_dir = model_dir,
     prompt = prompt,
     negative_prompt = negative_prompt,
-    lora_path = lora_path,
+    lora_dir = lora_path,
     scheduler = scheduler,
     clip_skip = clip_skip,
     safety_checker = None,
@@ -89,8 +87,6 @@ for seed in seeds:
 
 plot_images(images)
 ```
-
----
 
 ## ② Using `diffuser_tools` Functions
 The various `diffuser_tools` functions outlined below were created using older versions of diffusers which did not have many modern capabilities such as loading safetensors directly or loading LoRA weights.
