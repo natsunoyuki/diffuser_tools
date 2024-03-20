@@ -16,16 +16,13 @@ accelerate==0.25.0
 diffusers==0.24.0
 huggingface_hub==0.19.4
 omegaconf==2.3.0
+compel==2.0.2
 ```
 
 ## Usage 
-There are two main ways to use the `diffuser_tools` package.
-1. Using the `Text2ImagePipe` class.
-2. Using `diffuser_tools` functions.
+The `Text2ImagePipe` class contains the pipeline for loading and running stable diffusion models with the `diffusers` package.
+ method of using `diffuser_tools`, while the `diffuser_tools` functions are less recent and are kept for legacy purposese.
 
-The `Text2ImagePipe` class is the more recent method of using `diffuser_tools`, while the `diffuser_tools` functions are less recent and are kept for legacy purposese.
-
-## ① Using the `Text2ImagePipe` Class
 The `Text2ImagePipe` class contains the functionalities required to load pre-trained stable diffusion model safetensors, LoRA weight safetensors, use CLIP skip, and calculate prompt/negative prompt embeddings.
 
 ```
@@ -38,16 +35,23 @@ from diffuser_tools.utilities import plot_images, save_images
 
 
 # kMain safetensors directly from civitai.
-model_dir = "kMain_kMain21.safetensors"
+model_dir = "meichidarkMix_meichidarkV5.safetensors"
 
 # LoRA safetensors directly from civitai.
 lora_path = "edgWar40KAdeptaSororitas.safetensors"
 
+# Textual inversion.
+textual_inversion_dirs = ["easynegative.safetensors", "badhandv4.pt"]
+textual_inversion_tokens = ["easynegative", "badhandv4"]
+
 # Clip skip.
-clip_skip = 0
+clip_skip = 2
 
 # Scheduler. 
-scheduler = "EADS"
+scheduler = "DPMSMS"
+scheduler_configs = {
+    "use_karras_sigmas": True
+}
 
 # Create prompt and negative prompts.
 prompt = """..."""
@@ -61,17 +65,20 @@ text_2_img = Text2ImagePipe(
     negative_prompt = negative_prompt,
     lora_dir = lora_path,
     scheduler = scheduler,
+    scheduler_configs = scheduler_configs,
     clip_skip = clip_skip,
+    textual_inversion_dirs = textual_inversion_dirs,
+    textual_inversion_tokens = textual_inversion_tokens,
     safety_checker = None,
     use_prompt_embeddings = True,
-    split_character = ",",
+    use_compel = True,
     torch_dtype = torch_dtype,
-    device = torch.device("cuda"),
+    device = device_name
 )
 
 
 # Run the text to image pipeline for several seed values.
-seeds = [i for i in range(0, 5)]
+seeds = [i for i in range(0, 10)]
 images = []
 for seed in seeds:
     image = text_2_img.run_pipe(
@@ -85,71 +92,6 @@ for seed in seeds:
     )
     images.append(image)
 
-plot_images(images)
-```
-
-## ② Using `diffuser_tools` Functions
-The various `diffuser_tools` functions outlined below were created using older versions of diffusers which did not have many modern capabilities such as loading safetensors directly or loading LoRA weights.
-
-Before CivitAI models can be used with the `diffuser_tools` functions outlined below, they need to be converted from safetensors to a format which older versions of the `diffusers` package can load. See the section <b>Converting CivitAI Safetensors for Diffusers</b> for more information on CivitAI safetensors conversion.
-
-```
-# utilities contains functions for visualization and outupts.
-from diffuser_tools.utilities import plot_images, save_images
-
-# prompt_utilities contains functions for creating prompt embeddings.
-from diffuser_tools.prompt_utilities import get_prompt_embeddings
-
-# text2img_utilities contain functions for creating and running 
-# stable diffusion pipelines.
-from diffuser_tools.text2img_utilities import load_pipeline, run_pipe
-
-
-# Create stable diffusion text to image pipeline.
-# Also, specify the last layer of the clip text encoder to use.
-# clip_skip = 1 will use the full clip text encoder model
-# (following standard conventions).
-# clip_skip = 2 will use features from the second last layer
-# (again following standard conventions).
-pipe = load_pipeline(
-    model_path,
-    scheduler = "EADS",
-    clip_skip = 2,
-    clip_dir = clip_path,
-    safety_checker = None,
-    device_name = torch.device("cuda"),
-    torch_dtype = torch.float16,
-)
-
-# Create prompt and negative prompts.
-prompt = """..."""
-negative_prompt = """..."""
-
-# Create prompt embeddings.
-prompt_embeds, negative_prompt_embeds = get_prompt_embeddings(
-    pipe,
-    prompt,
-    negative_prompt,
-    split_character = ",",
-    device = torch.device("cuda"),
-)
-
-# Run stable diffusion pipeline to get images using clip_skip 
-# and prompt embeddings.
-images = run_pipe(
-    pipe = pipe,
-    prompt_embeddings = prompt_embeds,
-    negative_prompt_embeddings = negative_prompt_embeds,
-    steps = 50,
-    width = 512,
-    height = 768,
-    scale = 7,
-    seed = 123456789,
-    n_images = 10,
-    device_name = torch.device("cuda"),
-)
-
-# Visualize images.
 plot_images(images)
 ```
 
