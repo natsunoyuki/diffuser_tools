@@ -23,7 +23,7 @@ class Text2ImagePipe(object):
         textual_inversion_tokens = [],
         safety_checker = None,
         use_prompt_embeddings = True,
-        use_compel = True,
+        use_compel = False,
         torch_dtype = torch.float32,
         device = torch.device("cpu")
     ):
@@ -130,9 +130,17 @@ class Text2ImagePipe(object):
 
     # %%
     def set_textual_inversion(self, textual_inversion_dirs = [], textual_inversion_tokens = []):
-        for tid, tis in zip(textual_inversion_dirs, textual_inversion_tokens):
-            self.pipe.load_textual_inversion(tid, token = tis)
+        if len(textual_inversion_dirs) > len(textual_inversion_tokens):
+            diff = [None] * (len(textual_inversion_dirs) - len(textual_inversion_tokens))
+            textual_inversion_tokens = textual_inversion_tokens + diff
 
+        for tid, tis in zip(textual_inversion_dirs, textual_inversion_tokens):
+            if tis is None:
+                # Positive textual inversion. No special token.
+                self.pipe.load_textual_inversion(tid)
+            else:
+                # Negative textual inversion. Requires a special token.
+                self.pipe.load_textual_inversion(tid, token = tis)
 
     # %%
     def set_scheduler(self, scheduler = None, scheduler_configs = None):
@@ -155,7 +163,7 @@ class Text2ImagePipe(object):
         prompt = None,
         negative_prompt = None,
         use_prompt_embeddings = True,
-        use_compel = True
+        use_compel = False
     ):
         """Set prompt and negative prompts.
         Optionally calculates the prompt embeddings.
