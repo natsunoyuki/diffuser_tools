@@ -6,6 +6,7 @@ import torch
 
 
 # %%
+# TODO update code to use the latest versions of diffusers.
 class Text2ImagePipe(object):
     # %%
     def __init__(
@@ -24,6 +25,7 @@ class Text2ImagePipe(object):
         safety_checker = None,
         use_prompt_embeddings = True,
         use_compel = False,
+        img2img = False,
         torch_dtype = torch.float32,
         device = torch.device("cpu")
     ):
@@ -65,6 +67,8 @@ class Text2ImagePipe(object):
                 used instead. Overcomes CLIP's 77 token limit.
             use_compel: True
                 If True, use Compel to make prompt embeddings. True by default.
+            img2img: False
+                If True, the img2img pipeline will be loaded instead of the default text2img pipeline.
             torch_dtype: torch.float32 or torch.float16.
                 Use torch.float32 if using torch.device("cpu"), and
                 use torch.float16 if using torch.device("cuda").
@@ -78,6 +82,7 @@ class Text2ImagePipe(object):
 
         # Diffusers pipeline.
         self.pipe = None
+        self.img2img = img2img
 
         # Load CivitAI model weights in the form of safetensors.
         # TODO add support for other file types or for downloading models from HuggingFace.
@@ -120,8 +125,11 @@ class Text2ImagePipe(object):
 
     # %% 
     def load_model(self, model_dir, torch_dtype):
-        self.pipe = diffusers.StableDiffusionPipeline.from_single_file(model_dir, torch_dtype = torch_dtype)
-
+        if self.img2img is True:
+            self.pipe = diffusers.StableDiffusionImg2ImgPipeline.from_single_file(model_dir, torch_dtype = torch_dtype)
+        else:
+            self.pipe = diffusers.StableDiffusionPipeline.from_single_file(model_dir, torch_dtype = torch_dtype)
+            
     # %%
     def clip_skip(self, clip_skip = 0):
         if clip_skip > 0:
@@ -198,7 +206,6 @@ class Text2ImagePipe(object):
         """Prompt embeddings to overcome CLIP 77 token limit.
         https://github.com/huggingface/diffusers/issues/2136
         """
-
         max_length = self.pipe.tokenizer.model_max_length
 
         input_ids = self.pipe.tokenizer(
@@ -241,6 +248,8 @@ class Text2ImagePipe(object):
         height = 768,
         scale = 7.0,
         seed = 0,
+        image = None,
+        strength = 0.8,
         use_prompt_embeddings = False,
         verbose = False
     ):
@@ -258,6 +267,8 @@ class Text2ImagePipe(object):
             imgs = self.pipe(
                 prompt_embeds = self.prompt_embeddings,
                 negative_prompt_embeds = self.negative_prompt_embeddings,
+                image = image,
+                strength = strength,
                 width = width,
                 height = height,
                 guidance_scale = scale,
@@ -269,6 +280,8 @@ class Text2ImagePipe(object):
             imgs = self.pipe(
                 prompt = self.prompt,
                 negative_prompt = self.negative_prompt,
+                image = image,
+                strength = strength,
                 width = width,
                 height = height,
                 guidance_scale = scale,
