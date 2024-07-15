@@ -70,13 +70,13 @@ class Text2ImagePipe(object):
             textual_inversion_tokens: list
                 List of tokens corresponding to the textual inversion embedding files.
             safety_checker: None
-                Set to None to remove turn safety checker off.
-                Can also use customized safety checkers.
+                Set to None to remove turn safety checker off. None by default
+                Can also use customized safety checkers as argument.
             use_prompt_embeddings: bool
                 If True, prompt embeddings and negative prompt embeddings will be 
                 used instead. Overcomes CLIP's 77 token limit.
-            use_compel: True
-                If True, use Compel to make prompt embeddings. True by default.
+            use_compel: bool
+                If True, Compel will be used to handle prompt embeddings. False by default.
             img2img: False
                 If True, the img2img pipeline will be loaded instead of the default text2img pipeline.
             torch_dtype: torch.float32 or torch.float16.
@@ -95,30 +95,17 @@ class Text2ImagePipe(object):
         self.img2img = img2img # Set to True for image-to-image pipeline.
 
         # Load CivitAI model weights in the form of safetensors into the StableDiffusionPipeline.
-        self.load_model(model_dir, torch_dtype)
+        self.load_model_weights(model_dir, torch_dtype)
 
         # Safety checker. Turn off for more control.
         self.pipe.safety_checker = safety_checker
 
         # Load and fuse LoRA weights.
-        # TODO clean this up!
         # https://huggingface.co/docs/diffusers/v0.24.0/en/using-diffusers/loading_adapters#lora
-        if len(lora_dirs) == 0:
-            # Load a single LoRA.
-            if lora_dir is not None:
-                self.pipe.load_lora_weights(lora_dir)
-        else:
-            # Load and fuse multiple LoRAs.
-            for ldir, lsc in zip(lora_dirs, lora_scales):
-                self.pipe.load_lora_weights(ldir)
-                self.pipe.fuse_lora(lora_scale = lsc)
+        self.load_lora_weights(lora_dir=lora_dir, lora_dirs=lora_dirs, lora_scales=lora_scales)
 
         # CLIP skip.
         self.clip_skip(clip_skip)
-
-        # Textual inversion.
-        # https://huggingface.co/docs/diffusers/v0.24.0/en/using-diffusers/loading_adapters#textual-inversion
-        self.set_textual_inversion(textual_inversion_dirs, textual_inversion_tokens)
 
         # Scheduler.
         # https://huggingface.co/docs/diffusers/v0.26.2/en/api/schedulers/overview#schedulers
@@ -127,16 +114,30 @@ class Text2ImagePipe(object):
         # Device.
         self.pipe = self.pipe.to(self.device)
 
-        # Prompt and negative prompts.
+        # Textual inversion.
+        # https://huggingface.co/docs/diffusers/v0.24.0/en/using-diffusers/loading_adapters#textual-inversion
+        self.load_textual_inversion_weights(textual_inversion_dirs, textual_inversion_tokens)
+
+        # Create prompt and negative prompt embeddings.
         self.prompt = None
         self.negative_prompt = None
         self.prompt_embeddings = None
         self.negative_prompt_embeddings = None
-        self.compel = compel.Compel(tokenizer = self.pipe.tokenizer, text_encoder = self.pipe.text_encoder)
+        if use_compel is True:
+            if len(textual_inversion_dirs) > 0:
+                textual_inversion_manager = compel.DiffusersTextualInversionManager(self.pipe)
+            else:
+                textual_inversion_manager = None
+            self.compel = compel.Compel(tokenizer=self.pipe.tokenizer, 
+                                        text_encoder=self.pipe.text_encoder,
+                                        textual_inversion_manager=textual_inversion_manager, 
+                                        truncate_long_prompts=False)
+        else:
+            self.compel = None
         self.set_prompts(prompt, negative_prompt, use_prompt_embeddings, use_compel)
 
     # %% 
-    def load_model(self, model_dir, torch_dtype):
+    def load_model_weights(self, model_dir, torch_dtype):
         """Loads a pre-trained model into the StableDiffusionPipeline. Able to load .safetensors files
         and diffusers model directories.
         https://huggingface.co/docs/diffusers/v0.24.0/en/using-diffusers/using_safetensors
@@ -148,16 +149,34 @@ class Text2ImagePipe(object):
                 GPU floating point size - torch.float32 or torch.float16.
         """
         if os.path.splitext(model_dir)[-1] == ".safetensors":
+            # Load .safetensors file.
             if self.img2img is True:
                 self.pipe = diffusers.StableDiffusionImg2ImgPipeline.from_single_file(model_dir, torch_dtype=torch_dtype)
             else:
                 self.pipe = diffusers.StableDiffusionPipeline.from_single_file(model_dir, torch_dtype=torch_dtype)
         else:
+            # Load diffusers model repo.
             if self.img2img is True:
                 self.pipe = diffusers.StableDiffusionImg2ImgPipeline.from_pretrained(model_dir, torch_dtype=torch_dtype)
             else:
                 self.pipe = diffusers.StableDiffusionPipeline.from_pretrained(model_dir, torch_dtype=torch_dtype)
             
+    # %%
+    def load_lora_weights(self, lora_dir = None, lora_dirs = [], lora_scales = []):
+        """Loads one or more pre-trained LoRA weights into the StableDiffusionPipeline.
+        For multiple LoRA weights, a scaling factor is applied during the LoRA fusing process.
+        """
+        # TODO clean this up to handle single and multiple LoRA dirs with the same input argument!
+        if len(lora_dirs) == 0:
+            # Load a single LoRA.
+            if lora_dir is not None:
+                self.pipe.load_lora_weights(lora_dir)
+        else:
+            # Load and fuse multiple LoRAs.
+            for ldir, lsc in zip(lora_dirs, lora_scales):
+                self.pipe.load_lora_weights(ldir)
+                self.pipe.fuse_lora(lora_scale = lsc)
+
     # %%
     def clip_skip(self, clip_skip = 0):
         """Number of CLIP layers to skip. This parameter value is slightly differently from the commonly
@@ -173,8 +192,8 @@ class Text2ImagePipe(object):
             self.pipe.text_encoder.text_model.encoder.layers = clip_layers[:-clip_skip]
 
     # %%
-    def set_textual_inversion(self, textual_inversion_dirs = [], textual_inversion_tokens = []):
-        """Loads textual inversion pre-trained models into the pipeline.
+    def load_textual_inversion_weights(self, textual_inversion_dirs = [], textual_inversion_tokens = []):
+        """Loads textual inversion pre-trained model weights into the StableDiffusionPipeline.
         Textual inversion is a technique for learning a specific concept from some images which you can use to 
         generate new images conditioned on that concept.
         https://huggingface.co/docs/diffusers/v0.24.0/en/using-diffusers/loading_adapters#textual-inversion
@@ -214,7 +233,7 @@ class Text2ImagePipe(object):
         else:
             for k in self.pipe.scheduler.config.keys():
                 scheduler_configs[k] = self.pipe.scheduler.config.get(k)
-        
+        # TODO add more schedulers.
         if scheduler in ["EulerAncestralDiscreteScheduler", "EADS"]:
             self.pipe.scheduler = diffusers.EulerAncestralDiscreteScheduler.from_config(scheduler_configs)
         elif scheduler in ["EulerDiscreteScheduler", "EDS"]:
@@ -258,18 +277,19 @@ class Text2ImagePipe(object):
     def get_compel_prompt_embeddings(self, return_embeddings = False):
         """Use Compel to generate prompt embeddings to overcome CLIP 77 token limit.
         https://huggingface.co/docs/diffusers/en/using-diffusers/weighted_prompts#weighting
-
-        From my experience, using compel leads to poorer image quality/control.
         """
-        self.prompt_embeddings = self.compel([self.prompt])
-        self.negative_prompt_embeddings = self.compel([self.negative_prompt])
-
+        prompt_embeddings = self.compel([self.prompt])
+        negative_prompt_embeddings = self.compel([self.negative_prompt])
+        # The pipeline requires that both embeddings be of the same length.
+        [self.prompt_embeddings, self.negative_prompt_embeddings] = self.compel.pad_conditioning_tensors_to_same_length(
+            [prompt_embeddings, negative_prompt_embeddings]
+        )
         if return_embeddings is True:
             return self.prompt_embeddings, self.negative_prompt_embeddings
                     
     # %%
     def get_prompt_embeddings(self, return_embeddings = False):
-        """Prompt embeddings to overcome CLIP 77 token limit.
+        """Prompt embeddings to overcome CLIP 77 token limit. Does not use compel.
         https://github.com/huggingface/diffusers/issues/2136
         """
         max_length = self.pipe.tokenizer.model_max_length
