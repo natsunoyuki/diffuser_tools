@@ -9,12 +9,12 @@ pip install git+https://github.com/natsunoyuki/diffuser_tools
 ```
 
 ### Dependencies Versions
-This set of Python codes has been tested with the following versions of the dependencies listed in `pyproject.toml`.
+This set of Python codes has been tested on 2024 July 15 on Google Colab with the following dependencies:
 ```
-transformers==4.35.2
-accelerate==0.25.0
-diffusers==0.24.0
-huggingface_hub==0.19.4
+transformers==4.41.2
+accelerate==0.32.1
+diffusers==0.29.2
+huggingface_hub==0.23.4
 omegaconf==2.3.0
 compel==2.0.2
 ```
