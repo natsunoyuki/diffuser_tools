@@ -17,6 +17,7 @@ diffusers==0.29.2
 huggingface_hub==0.23.4
 omegaconf==2.3.0
 compel==2.0.2
+peft==0.11.1
 ```
 
 ## Usage 

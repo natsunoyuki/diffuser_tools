@@ -22,16 +22,16 @@ class Text2ImagePipe(object):
     # %%
     def __init__(
         self,
-        model_dir,
+        model_path,
         prompt = None,
         negative_prompt= None,
         scheduler = None,
         scheduler_configs = None,
-        lora_dir = None,
-        lora_dirs = [],
+        lora_paths = [],
+        lora_adapter_names = [],
         lora_scales = [],
         clip_skip = 0,
-        textual_inversion_dirs = [],
+        textual_inversion_paths = [],
         textual_inversion_tokens = [],
         safety_checker = None,
         use_prompt_embeddings = True,
@@ -47,7 +47,7 @@ class Text2ImagePipe(object):
         4. Safety checker.
 
         Inputs:
-            model_dir: str
+            model_path: str
                 Path to the model checkpoint safetensors file.
             prompt: str
                 Prompt.
@@ -57,15 +57,15 @@ class Text2ImagePipe(object):
                 Scheduler to use. Choose from: EADS, EDS or DPMSMS.
             scheduler_configs: dict
                 Scheduler configurations in the form of a dict.
-            lora_dir: str
-                Path to a single LoRA safetensors file.
-            lora_dirs: list of str
+            lora_paths: list of str
                 Paths to multiple LoRA safetensors files.
+            lora_adapter_names: list of str
+                Corresponding list of strings of the LoRA adapter names.
             lora_scales: list of floats
                 Corresponding scaling factors for the LoRAs in lora_dirs.
             clip_skip: int
                 Number of CLIP layers to skip. 0 means no CLIP skipping.
-            textual_inversion_dirs: list
+            textual_inversion_paths: list
                 Paths to multiple textual inversion embedding files.
             textual_inversion_tokens: list
                 List of tokens corresponding to the textual inversion embedding files.
@@ -95,14 +95,14 @@ class Text2ImagePipe(object):
         self.img2img = img2img # Set to True for image-to-image pipeline.
 
         # Load CivitAI model weights in the form of safetensors into the StableDiffusionPipeline.
-        self.load_model_weights(model_dir, torch_dtype)
+        self.load_model_weights(model_path, torch_dtype)
 
         # Safety checker. Turn off for more control.
         self.pipe.safety_checker = safety_checker
 
         # Load and fuse LoRA weights.
         # https://huggingface.co/docs/diffusers/v0.24.0/en/using-diffusers/loading_adapters#lora
-        self.load_lora_weights(lora_dir=lora_dir, lora_dirs=lora_dirs, lora_scales=lora_scales)
+        self.load_lora_weights(lora_paths, lora_adapter_names, lora_scales)
 
         # CLIP skip.
         self.clip_skip(clip_skip)
@@ -116,7 +116,7 @@ class Text2ImagePipe(object):
 
         # Textual inversion.
         # https://huggingface.co/docs/diffusers/v0.24.0/en/using-diffusers/loading_adapters#textual-inversion
-        self.load_textual_inversion_weights(textual_inversion_dirs, textual_inversion_tokens)
+        self.load_textual_inversion_weights(textual_inversion_paths, textual_inversion_tokens)
 
         # Create prompt and negative prompt embeddings.
         self.prompt = None
@@ -124,7 +124,7 @@ class Text2ImagePipe(object):
         self.prompt_embeddings = None
         self.negative_prompt_embeddings = None
         if use_compel is True:
-            if len(textual_inversion_dirs) > 0:
+            if len(textual_inversion_paths) > 0:
                 textual_inversion_manager = compel.DiffusersTextualInversionManager(self.pipe)
             else:
                 textual_inversion_manager = None
@@ -137,45 +137,54 @@ class Text2ImagePipe(object):
         self.set_prompts(prompt, negative_prompt, use_prompt_embeddings, use_compel)
 
     # %% 
-    def load_model_weights(self, model_dir, torch_dtype):
+    def load_model_weights(self, model_path, torch_dtype):
         """Loads a pre-trained model into the StableDiffusionPipeline. Able to load .safetensors files
         and diffusers model directories.
         https://huggingface.co/docs/diffusers/v0.24.0/en/using-diffusers/using_safetensors
 
         Inputs:
-            model_dir: str
+            model_path: str
                 Path to the pre-trained model safetensors file or a diffusers model directory.
             torch_dtype: torch.dtype
                 GPU floating point size - torch.float32 or torch.float16.
         """
-        if os.path.splitext(model_dir)[-1] == ".safetensors":
+        if os.path.splitext(model_path)[-1] == ".safetensors":
             # Load .safetensors file.
             if self.img2img is True:
-                self.pipe = diffusers.StableDiffusionImg2ImgPipeline.from_single_file(model_dir, torch_dtype=torch_dtype)
+                self.pipe = diffusers.StableDiffusionImg2ImgPipeline.from_single_file(model_path, torch_dtype=torch_dtype)
             else:
-                self.pipe = diffusers.StableDiffusionPipeline.from_single_file(model_dir, torch_dtype=torch_dtype)
+                self.pipe = diffusers.StableDiffusionPipeline.from_single_file(model_path, torch_dtype=torch_dtype)
         else:
             # Load diffusers model repo.
             if self.img2img is True:
-                self.pipe = diffusers.StableDiffusionImg2ImgPipeline.from_pretrained(model_dir, torch_dtype=torch_dtype)
+                self.pipe = diffusers.StableDiffusionImg2ImgPipeline.from_pretrained(model_path, torch_dtype=torch_dtype)
             else:
-                self.pipe = diffusers.StableDiffusionPipeline.from_pretrained(model_dir, torch_dtype=torch_dtype)
+                self.pipe = diffusers.StableDiffusionPipeline.from_pretrained(model_path, torch_dtype=torch_dtype)
             
     # %%
-    def load_lora_weights(self, lora_dir = None, lora_dirs = [], lora_scales = []):
-        """Loads one or more pre-trained LoRA weights into the StableDiffusionPipeline.
+    def load_lora_weights(self, lora_paths = [], lora_adapter_names = [], lora_scales = [], fuse_scale = 1.0):
+        """Loads one or more pre-trained LoRA .safetensor weights into StableDiffusionPipeline.
         For multiple LoRA weights, a scaling factor is applied during the LoRA fusing process.
+        https://huggingface.co/docs/diffusers/en/using-diffusers/merge_loras
         """
-        # TODO clean this up to handle single and multiple LoRA dirs with the same input argument!
-        if len(lora_dirs) == 0:
-            # Load a single LoRA.
-            if lora_dir is not None:
-                self.pipe.load_lora_weights(lora_dir)
-        else:
-            # Load and fuse multiple LoRAs.
-            for ldir, lsc in zip(lora_dirs, lora_scales):
-                self.pipe.load_lora_weights(ldir)
-                self.pipe.fuse_lora(lora_scale = lsc)
+        if len(lora_adapter_names) < len(lora_paths):
+            adapters = [os.path.splitext(os.path.basename(p))[0] for p in lora_paths[len(lora_adapter_names):]]
+            adapters = [a.replace(".", "_") for a in adapters]
+            lora_adapter_names += adapters
+
+        if len(lora_scales) < len(lora_paths):
+            lora_scales += [1.0] * (len(lora_paths) - len(lora_scales))
+
+        # Load and fuse multiple LoRAs. Doing it this way produces slightly different results from the
+        # more modern adapters method below.
+        #for lp, ls in zip(lora_paths, lora_scales):
+        #    self.pipe.load_lora_weights(lp)
+        #    self.pipe.fuse_lora(lora_scale = ls)
+        for lp, la in zip(lora_paths, lora_adapter_names):
+            self.pipe.load_lora_weights(lp, adapter_name = la)
+
+        self.pipe.set_adapters(lora_adapter_names, adapter_weights = lora_scales)
+        self.pipe.fuse_lora(adapter_names = lora_adapter_names, lora_scale = fuse_scale)
 
     # %%
     def clip_skip(self, clip_skip = 0):
@@ -192,7 +201,7 @@ class Text2ImagePipe(object):
             self.pipe.text_encoder.text_model.encoder.layers = clip_layers[:-clip_skip]
 
     # %%
-    def load_textual_inversion_weights(self, textual_inversion_dirs = [], textual_inversion_tokens = []):
+    def load_textual_inversion_weights(self, textual_inversion_paths = [], textual_inversion_tokens = []):
         """Loads textual inversion pre-trained model weights into the StableDiffusionPipeline.
         Textual inversion is a technique for learning a specific concept from some images which you can use to 
         generate new images conditioned on that concept.
@@ -200,16 +209,16 @@ class Text2ImagePipe(object):
         https://huggingface.co/docs/diffusers/en/using-diffusers/weighted_prompts#textual-inversion
         
         Inputs:
-            textual_inversion_dirs: list
+            textual_inversion_paths: list
                 List of paths to the pre-trained textual inversion models.
             textual_inversion_tokens:
                 Optional list of corresponding textual inversion tokens. Specify tokens for more control.
         """
-        if len(textual_inversion_dirs) > len(textual_inversion_tokens):
-            diff = [None] * (len(textual_inversion_dirs) - len(textual_inversion_tokens))
+        if len(textual_inversion_paths) > len(textual_inversion_tokens):
+            diff = [None] * (len(textual_inversion_paths) - len(textual_inversion_tokens))
             textual_inversion_tokens = textual_inversion_tokens + diff
 
-        for tid, tis in zip(textual_inversion_dirs, textual_inversion_tokens):
+        for tid, tis in zip(textual_inversion_paths, textual_inversion_tokens):
             if tis is None:
                 # Positive textual inversion. No special token. Less control over the output.
                 self.pipe.load_textual_inversion(tid)
