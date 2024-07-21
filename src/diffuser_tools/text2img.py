@@ -35,7 +35,7 @@ class Text2ImagePipe(object):
         textual_inversion_tokens = [],
         safety_checker = None,
         use_prompt_embeddings = True,
-        use_compel = False,
+        use_compel = True,
         img2img = False,
         torch_dtype = torch.float32,
         device = torch.device("cpu")
@@ -345,6 +345,7 @@ class Text2ImagePipe(object):
         seed = 0,
         image = None,
         strength = 0.8,
+        num_images_per_prompt = 1,
         use_prompt_embeddings = True,
         verbose = False
     ):
@@ -365,13 +366,15 @@ class Text2ImagePipe(object):
                 Input image for img2img pipelines.
             strength: float
                 Strength for img2img pipelines.
+            number_of_images_per_prompt: int
+                Number of output images to generate per prompt/seed.
             use_prompt_embeddings: bool
                 Use prompt embeddings or not. True by default as most prompts will be > 77 tokens long.
             verbose: bool
                 Verbosity mode. Set to True for verbose mode.
         Returns:
-            imgs: Image
-                Generated image.
+            imgs: List[Image]
+                List of generated images.
         """
         if self.prompt is None and self.prompt_embeddings is None:
             return
@@ -391,7 +394,7 @@ class Text2ImagePipe(object):
                 height = height,
                 guidance_scale = scale,
                 num_inference_steps = steps,
-                num_images_per_prompt = 1,
+                num_images_per_prompt = num_images_per_prompt,
                 generator = torch.manual_seed(seed),
             ).images
         else:
@@ -404,7 +407,7 @@ class Text2ImagePipe(object):
                 height = height,
                 guidance_scale = scale,
                 num_inference_steps = steps,
-                num_images_per_prompt = 1,
+                num_images_per_prompt = num_images_per_prompt,
                 generator = torch.manual_seed(seed),
             ).images
 
@@ -412,4 +415,4 @@ class Text2ImagePipe(object):
         time_elapsed = end_time - start_time
         if verbose is True:
             sys.stdout.write("{:.2f}s.\n".format(time_elapsed));
-        return imgs[0]
+        return imgs
