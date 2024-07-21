@@ -109,7 +109,7 @@ for seed in seeds:
         use_prompt_embeddings = True,
         verbose = False
     )
-    images.append(image)
+    images += image
 ```
 
 ## Converting CivitAI Safetensors for Diffusers
