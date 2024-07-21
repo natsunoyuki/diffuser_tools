@@ -26,7 +26,7 @@ The `Text2ImagePipe` class contains the pipeline for loading and running stable 
 
 The `Text2ImagePipe` class contains the functionalities required to load pre-trained stable diffusion model safetensors, LoRA weight safetensors, use CLIP skip, and calculate prompt/negative prompt embeddings.
 
-```
+```python
 # text2img contains a class for the entire text to image pipeline.
 # This class is able to handle clip skips, LoRAs and schedulers.
 from diffuser_tools.text2img import Text2ImagePipe
@@ -34,70 +34,86 @@ from diffuser_tools.text2img import Text2ImagePipe
 # utilities contains functions for visualization and outupts.
 from diffuser_tools.utilities import plot_images, save_images
 
+# Set GPU or CPU.
+import torch
 
-# kMain safetensors directly from civitai.
-model_dir = "meichidarkMix_meichidarkV5.safetensors"
+if torch.backends.mps.is_available():
+    device_name = torch.device("mps")
+    torch_dtype = torch.float32
+elif torch.cuda.is_available():
+    device_name = torch.device("cuda")
+    torch_dtype = torch.float16
+else:
+    device_name = torch.device("cpu")
+    torch_dtype = torch.float32
 
-# LoRA safetensors directly from civitai.
-lora_path = "edgWar40KAdeptaSororitas.safetensors"
 
-# Textual inversion.
-textual_inversion_dirs = ["easynegative.safetensors", "badhandv4.pt"]
+# Prompts.
+prompt = "..."
+negative_prompt = "..."
+
+# Model safetensors from civitai.
+model_path = "kMain_kMain21.safetensors"
+
+# Textual inversion safetensors and pytorch files from civitai.
+textual_inversion_paths = ["easynegative.safetensors", "badhandv4.pt"]
 textual_inversion_tokens = ["easynegative", "badhandv4"]
 
-# Clip skip.
+# Lora safetensors from civitai.
+lora_paths = ["tangbohu-line_1.0.safetensors"]
+lora_adapter_names = ["tangbohu-line"]
+lora_scales = [0.7]
+
+# CLIP skip.
 clip_skip = 2
 
-# Scheduler. 
+# Scheduler.
 scheduler = "DPMSMS"
 scheduler_configs = {
     "use_karras_sigmas": True
 }
 
-# Create prompt and negative prompts.
-prompt = """..."""
-negative_prompt = """..."""
-
-
-# Initialize the text to image pipe class.
 text_2_img = Text2ImagePipe(
-    model_dir = model_dir,
+    model_path = model_path,
     prompt = prompt,
     negative_prompt = negative_prompt,
-    lora_dir = lora_path,
+    lora_paths = lora_paths,
+    lora_adapter_names = lora_adapter_names,
+    lora_scales = lora_scales,
     scheduler = scheduler,
     scheduler_configs = scheduler_configs,
     clip_skip = clip_skip,
-    textual_inversion_dirs = textual_inversion_dirs,
+    textual_inversion_paths = textual_inversion_paths,
     textual_inversion_tokens = textual_inversion_tokens,
     safety_checker = None,
     use_prompt_embeddings = True,
     use_compel = True,
+    img2img = False,
     torch_dtype = torch_dtype,
     device = device_name
 )
 
 
 # Run the text to image pipeline for several seed values.
-seeds = [i for i in range(0, 10)]
+start_seed = 0
+N_imgs = 10
+seeds = [i for i in range(start_seed, start_seed + N_imgs)]
 images = []
 for seed in seeds:
     image = text_2_img.run_pipe(
-        steps = 50,
+        steps = 30,
         width = 512,
         height = 832,
-        scale = 12.0,
+        scale = 7,
         seed = seed,
         use_prompt_embeddings = True,
-        verbose = False,
+        verbose = False
     )
     images.append(image)
-
-plot_images(images)
 ```
 
 ## Converting CivitAI Safetensors for Diffusers
-Many models released on <a href = "https://civitai.com">CivitAI</a> are published as safetensors. These safetensors must be converted to a format which the `diffusers` library can use. To do so, use a script provided on the `diffusers` official GitHub repository:
+Many models released on <a href = "https://civitai.com">CivitAI</a> are published as safetensors. For older versions of `diffusers<=0.24.0`, these safetensors might need to be converted to a format which the older `diffusers<=0.24.0` library can use. To do so, use a script provided on the `diffusers<=0.24.0` official GitHub repository:
 ```
 wget https://raw.githubusercontent.com/huggingface/diffusers/main/scripts/convert_original_stable_diffusion_to_diffusers.py
 ```
