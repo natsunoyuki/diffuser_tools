@@ -385,31 +385,30 @@ class Text2ImagePipe(object):
         start_time = time.time()
 
         if use_prompt_embeddings is True:
-            imgs = self.pipe(
-                prompt_embeds = self.prompt_embeddings,
-                negative_prompt_embeds = self.negative_prompt_embeddings,
-                image = image,
-                strength = strength,
-                width = width,
-                height = height,
-                guidance_scale = scale,
-                num_inference_steps = steps,
-                num_images_per_prompt = num_images_per_prompt,
-                generator = torch.manual_seed(seed),
-            ).images
+            prompt = None
+            negative_prompt = None
+            prompt_embeds = self.prompt_embeddings
+            negative_prompt_embeds = self.negative_prompt_embeddings
         else:
-            imgs = self.pipe(
-                prompt = self.prompt,
-                negative_prompt = self.negative_prompt,
-                image = image,
-                strength = strength,
-                width = width,
-                height = height,
-                guidance_scale = scale,
-                num_inference_steps = steps,
-                num_images_per_prompt = num_images_per_prompt,
-                generator = torch.manual_seed(seed),
-            ).images
+            prompt = self.prompt
+            negative_prompt = self.negative_prompt
+            prompt_embeds = None
+            negative_prompt_embeds = None
+
+        imgs = self.pipe(
+            prompt = prompt,
+            negative_prompt = negative_prompt,
+            prompt_embeds = prompt_embeds,
+            negative_prompt_embeds = negative_prompt_embeds,
+            image = image,
+            strength = strength,
+            width = width,
+            height = height,
+            guidance_scale = scale,
+            num_inference_steps = steps,
+            num_images_per_prompt = num_images_per_prompt,
+            generator = torch.manual_seed(seed),
+        ).images
 
         end_time = time.time()
         time_elapsed = end_time - start_time
