@@ -20,7 +20,7 @@ compel==2.0.2
 peft==0.11.1
 ```
 
-## Usage 
+## API Usage 
 The `Text2ImagePipe` class contains the pipeline for loading and running stable diffusion models with the `diffusers` package.
  method of using `diffuser_tools`, while the `diffuser_tools` functions are less recent and are kept for legacy purposese.
 
@@ -114,6 +114,12 @@ images = text_2_img.run_pipe(
     verbose = False,
     num_images_per_prompt = N_imgs,
 )
+```
+
+## Command Line Usage
+Ensure that all the model weights are downloaded and converted to the `diffusers` format (see "Converting CivitAI Safetensors for Diffusers" below). Change any configurations in `main.yml` as required, and run `main.py` from the command line.
+```bash
+python3 main.py
 ```
 
 ## Converting CivitAI Safetensors for Diffusers
