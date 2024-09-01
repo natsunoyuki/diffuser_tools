@@ -47,13 +47,17 @@ else:
     device_name = torch.device("cpu")
     torch_dtype = torch.float32
 
-
 # Prompts.
 prompt = "..."
 negative_prompt = "..."
 
-# Model safetensors from civitai.
-model_path = "kMain_kMain21.safetensors"
+# Diffusion pipeline model converted from civitai safetensors.
+# See the section "Converting CivitAI Safetensors for Diffusers" below.
+# Now that runwayml has removed stable diffusion 1.5 weights from 
+# HuggingFace, using the downloaded .safetensors from civitai does
+# not work, as the pipeline will still attempt to download certain files
+# from HuggingFace. 
+model_path = "kMain/"
 
 # Textual inversion safetensors and pytorch files from civitai.
 textual_inversion_paths = ["easynegative.safetensors", "badhandv4.pt"]
@@ -69,9 +73,7 @@ clip_skip = 2
 
 # Scheduler.
 scheduler = "DPMSMS"
-scheduler_configs = {
-    "use_karras_sigmas": True
-}
+scheduler_configs = {"use_karras_sigmas": True}
 
 text_2_img = Text2ImagePipe(
     model_path = model_path,
@@ -88,28 +90,30 @@ text_2_img = Text2ImagePipe(
     safety_checker = None,
     use_prompt_embeddings = True,
     use_compel = True,
-    img2img = False,
+    img2img = False, # For img2img pipeline.
     torch_dtype = torch_dtype,
     device = device_name
 )
 
-
-# Run the text to image pipeline for several seed values.
-start_seed = 0
+# Run the image generation pipeline.
 N_imgs = 10
-seeds = [i for i in range(start_seed, start_seed + N_imgs)]
-images = []
-for seed in seeds:
-    image = text_2_img.run_pipe(
-        steps = 30,
-        width = 512,
-        height = 832,
-        scale = 7,
-        seed = seed,
-        use_prompt_embeddings = True,
-        verbose = False
-    )
-    images += image
+width = 512
+height = 768
+seed = 4
+steps = 30
+scale = 5
+images = text_2_img.run_pipe(
+    steps = steps,
+    width = width,
+    height = height,
+    scale = scale,
+    seed = seed,
+    #image = [seed_image] * N_imgs, # For img2img pipeline.
+    #strength = 0.8, # For img2img pipeline.
+    use_prompt_embeddings = True,
+    verbose = False,
+    num_images_per_prompt = N_imgs,
+)
 ```
 
 ## Converting CivitAI Safetensors for Diffusers
