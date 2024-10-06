@@ -4,7 +4,15 @@
 `diffuser_tools` contains functions to load and run `diffusers` `text2img` pipelines with prompt embeddings and clip-skipping, and visualize or save the generated images to disk. 
 
 ## Installation
+Clone this repository, and install locally.
+```bash
+git clone https://github.com/natsunoyuki/diffuser_tools.git
+cd diffuser_tools
+pip install .
 ```
+
+Alternatively, perform a direct pip install from the repository.
+```bash
 pip install git+https://github.com/natsunoyuki/diffuser_tools
 ```
 
