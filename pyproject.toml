@@ -11,5 +11,6 @@ requires = [
     "peft",
     "pyyaml",
     "pillow",
+    "matplotlib",
 ]
 build-backend = "setuptools.build_meta"

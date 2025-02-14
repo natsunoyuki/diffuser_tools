@@ -8,14 +8,14 @@ output_dir: "outputs"
 project_name: null
 
 # Model directory path.
-model_dir: "kMain"
+model_dir: "model_weights/kMain_kMain21.safetensors"
 
 # Textual inversion models paths.
-textual_inversion_dirs: ["easynegative.safetensors", "badhandv4.pt"]
+textual_inversion_dirs: ["model_weights/easynegative.safetensors", "model_weights/badhandv4.pt"]
 textual_inversion_tokens: ["easynegative", "badhandv4"]
 
 # LoRAs.
-loras: [["tangbohu-line_1.0.safetensors", "tangbohu-line", 0.7]]
+loras: [["model_weights/tangbohu-line_1.0.safetensors", "tangbohu-line", 0.7]]
 
 # CLIP skip.
 clip_skip: 2
@@ -29,16 +29,18 @@ prompt: |
     (photo-realistic,real photo,masterpiece,best quality,8k,UHD,
     RAW photo,levelled out,super resolution,sharp focus,ultra detailed skin,
     realistic skin,beautiful vivid backgrounds,exquisitely detailed,
-    colorful and intricate details,ray tracing,soft lights,soft lighting,
-    lustrous skin,physically based rendering,best illustration,soft shadow,
-    cinematic lighting,delicate illustration,official art,aesthetic:1.4),
+    colorful and intricate details,ray tracing,film lights,spot lights,
+    lustrous skin,physically based rendering,best illustration,best shadow,
+    cinematic lighting,delicate Illustration,official art,aesthetic:1.4),
     (golden-ratio face,perfect proportioned face,perfectly beautiful),
-    (mature woman,milf,playboy model,miss usa,usa beauty),
+    (sea side),(standing in the sea by the shore),(clear skies),
+    (mature woman,milf,miss korea,korean beauty),
     (white string bikini),(cleavage,underboob,sideboob),(large breasts),
-    hands in hair,hands behind head,looking at viewer,facing camera,
-    glossy and red lips,brown eyes,long blonde hair,
+    (hands in hair,hands behind head,looking at viewer,facing camera),
+    glossy and red lips,brown eyes, long dark hair,
     (short torso,long legs,slim waist,huge hips,huge naturally sagging breasts:1.4),
-    (1girl,solo girl,solo focus),(thigh up shot,cowboy shot,from front view)
+    (1girl,solo girl,solo focus),
+    (thigh up shot,cowboy shot,side view)
 
 negative_prompt: |
     hands,(worst quality,low quality,normal quality,
@@ -47,9 +49,9 @@ negative_prompt: |
     oblique angle:1.3),tiara,(one more girl),easynegative,badhandv4
 
 # Image generation settings.
-num_images_per_prompt: 10
+num_images_per_prompt: 1
 width: 512
-height: 768
+height: 512
 seed: 0
 steps: 30
 scale: 7
