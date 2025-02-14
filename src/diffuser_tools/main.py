@@ -119,13 +119,16 @@ def main(**configs):
         num_images_per_prompt = num_images_per_prompt,
     )
 
+    # Output to disk.
     output_dir = pathlib.Path(configs.get("output_dir", "outputs"))
     if output_dir.exists() is False:
         output_dir.mkdir(exist_ok = True)
+
     project_name = configs.get("project_name", None)
     if project_name is None:
-        project_name = str(model_dir)
+        project_name = str(model_dir).split("/")[-1]
+        
     for count, im in enumerate(images):
-        out_im_path = output_dir / "{}_{}.png".format(project_name, count + 1)
+        out_im_path = output_dir / "{}_{}.png".format(project_name, count+1)
         print("Saving to: {}.".format(out_im_path))
         im.save(out_im_path)
