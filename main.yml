@@ -4,52 +4,48 @@ output_dir: "outputs"
 # Project name.
 project_name: null
 
+# Path to input image for img2img.
+img2img_image_path: null
+
 # Model directory path.
-model_dir: "kMain"
+model_dir: "stable-diffusion-v1-5/stable-diffusion-v1-5"
 
-# Textual inversion models paths.
-textual_inversion_dirs: ["easynegative.safetensors", "badhandv4.pt"]
-textual_inversion_tokens: ["easynegative", "badhandv4"]
+# Textual inversion models paths in the form [file 1, file 2].
+# e.g. ["easynegative.safetensors", "badhandv4.pt"]
+textual_inversion_dirs: [] 
+# Textual inversion tokens in the form [token 1, token2].
+# e.g. ["easynegative", "badhandv4"]
+textual_inversion_tokens: [] 
 
-# LoRAs.
-loras: [["tangbohu-line_1.0.safetensors", "tangbohu-line", 0.7]]
+# LoRA list in the form [[lora file path, trigger word, strength]].
+# e.g. [["tangbohu-line_1.0.safetensors", "tangbohu-line", 0.7]]
+loras: [] 
 
 # CLIP skip.
 clip_skip: 2
 
-# Scheduler.
+# Scheduler. Currently only EADS, EDS or DPMSMS are supported.
 scheduler: "DPMSMS"
 scheduler_configs: {"use_karras_sigmas": True}
 
-# Prompt and negative prompt
+# Prompt and negative prompts as multi-line strings.
 prompt: |
+    Astronaut on the moon,
     (photo-realistic,real photo,masterpiece,best quality,8k,UHD,
-    RAW photo,levelled out,super resolution,sharp focus,ultra detailed skin,
-    realistic skin,beautiful vivid backgrounds,exquisitely detailed,
+    RAW photo,levelled out,super resolution,sharp focus,
+    beautiful vivid backgrounds,exquisitely detailed,
     colorful and intricate details,ray tracing,soft lights,soft lighting,
-    lustrous skin,physically based rendering,best illustration,soft shadow,
+    physically based rendering,best illustration,soft shadow,
     cinematic lighting,delicate illustration,official art,aesthetic:1.4),
-    (golden-ratio face,perfect proportioned face,perfectly beautiful),
-    (mature woman,milf,playboy model,miss usa,usa beauty),
-    (white string bikini),(cleavage,underboob,sideboob),(large breasts),
-    hands in hair,hands behind head,looking at viewer,facing camera,
-    glossy and red lips,brown eyes,long blonde hair,
-    (short torso,long legs,slim waist,huge hips,huge naturally sagging breasts:1.4),
-    (1girl,solo girl,solo focus),(thigh up shot,cowboy shot,from front view)
 
 negative_prompt: |
-    hands,(worst quality,low quality,normal quality,
-    low resolution,worst resolution,normal resolution,collage),
-    tattoo,watermark,(Dutch angle,Dutch tilt,canted angle,vortex angle,
-    oblique angle:1.3),tiara,(one more girl),easynegative,badhandv4
+    ugly,(worst quality,low quality,normal quality,
+    low resolution,worst resolution,normal resolution,collage)
 
 # Image generation settings.
 num_images_per_prompt: 10
 width: 512
-height: 768
+height: 512
 seed: 0
 steps: 30
 scale: 7
-
-# Path to input image for img2img.
-img2img_image_path: null

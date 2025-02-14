@@ -1,3 +1,15 @@
 [build-system]
-requires = ["setuptools>=42", "transformers", "accelerate", "diffusers", "huggingface_hub", "omegaconf", "torch", "compel", "peft"]
+requires = [
+    "setuptools>=42", 
+    "transformers", 
+    "accelerate", 
+    "diffusers", 
+    "huggingface_hub", 
+    "omegaconf", 
+    "torch", 
+    "compel", 
+    "peft",
+    "pyyaml",
+    "pillow",
+]
 build-backend = "setuptools.build_meta"

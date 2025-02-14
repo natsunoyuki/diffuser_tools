@@ -129,6 +129,10 @@ Ensure that all the model weights are downloaded and converted to the `diffusers
 ```bash
 python3 main.py
 ```
+Alternatively, create new configuration files in some sub-directory of `diffuser_tools/` and run `main.py` from the command line while specifying the sub-directory and file name.
+```bash
+python3 main.py --config_dir example_configs --config main_config.yaml
+```
 
 ## Converting CivitAI Safetensors for Diffusers
 Many models released on <a href = "https://civitai.com">CivitAI</a> are published as safetensors. For older versions of `diffusers<=0.24.0`, these safetensors might need to be converted to a format which the older `diffusers<=0.24.0` library can use. To do so, use a script provided on the `diffusers<=0.24.0` official GitHub repository:
