@@ -1,4 +1,4 @@
-# Copyright 2025 Natsunoyuki AI Laboratory
+# Copyright 2025 Natsunoyuki.
 
 # diffuser_tools is free software: you can redistribute it and/or modify it 
 # under the terms of the GNU General Public License as published by the Free 
